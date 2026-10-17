@@ -1,40 +1,95 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-<script>
-var isMobile = {
-        Android: function() {
-            return navigator.userAgent.match(/Android/i);
-        },
-        BlackBerry: function() {
-            return navigator.userAgent.match(/BlackBerry/i);
-        },
-        iOS: function() {
-            return navigator.userAgent.match(/iPhone|iPad|iPod/i);
-        },
-        Opera: function() {
-            return navigator.userAgent.match(/Opera Mini/i);
-        },
-        Windows: function() {
-            return navigator.userAgent.match(/IEMobile/i);
-        },
-        any: function() {
-            return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
-        }
-
-    };
-
-if ( isMobile.Android() ) {
-        document.location.href = "https://github.com/Zeppelin-Museum/LZ129-Hindenburg-AR/blob/main/model.glb";
-    }
-else if(isMobile.iOS())
-{
-document.location.href="https://github.com/Zeppelin-Museum/LZ129-Hindenburg-AR/blob/main/model.usdz";
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101820">
+<title>LZ 129 Hindenburg – AR</title>
+<style>
+* {
+box-sizing: border-box;
 }
-</script>
+
+body {
+margin: 0;
+min-height: 100vh;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 24px;
+background: #101820;
+color: #ffffff;
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+text-align: center;
+}
+
+main {
+width: 100%;
+max-width: 460px;
+}
+
+.symbol {
+font-size: 56px;
+margin-bottom: 12px;
+}
+
+h1 {
+font-size: 30px;
+margin: 0 0 12px;
+}
+
+p {
+color: #c6d0d8;
+line-height: 1.6;
+}
+
+.ar-button {
+display: block;
+margin-top: 26px;
+padding: 16px 20px;
+border-radius: 12px;
+background: #e4b65c;
+color: #101820;
+font-weight: 700;
+text-decoration: none;
+}
+
+.ar-button:focus-visible {
+outline: 3px solid #ffffff;
+outline-offset: 4px;
+}
+
+.note {
+font-size: 13px;
+margin-top: 20px;
+}
+</style>
 </head>
 <body>
+<main>
+<div class="symbol" aria-hidden="true">✈</div>
+<h1>LZ 129 Hindenburg</h1>
 
+<p>
+Entdecke das Luftschiff in Augmented Reality.
+Öffne die AR-Ansicht und platziere das Modell
+auf einer Fläche in deiner Umgebung.
+</p>
 
+<a
+class="ar-button"
+rel="ar"
+href="./models/model.usdz"
+aria-label="LZ 129 Hindenburg in Augmented Reality ansehen"
+>
+In AR ansehen
+</a>
+
+<p class="note">
+Am besten auf einem iPhone mit Safari öffnen.
+Bewege dein iPhone nach dem Start langsam,
+um deine Umgebung zu erfassen.
+</p>
+</main>
 </body>
 </html>
