@@ -1,1 +1,180 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101820">
+<title>LZ 129 Hindenburg – Android AR</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, sans-serif; background: #101820; color: white; }
 
+#info {
+position: fixed; z-index: 5; top: 16px; left: 16px; right: 16px;
+padding: 14px; background: rgba(16, 24, 32, 0.88);
+border-radius: 12px; line-height: 1.5; pointer-events: none;
+}
+
+#ARButton {
+bottom: 24px !important; left: 50% !important;
+transform: translateX(-50%); width: max-content; max-width: 90%;
+border: 0 !important; border-radius: 12px !important;
+padding: 14px 20px !important; font-size: 15px !important;
+}
+
+#back { display: inline-block; margin-top: 8px; color: #f0c66e; pointer-events: auto; }
+</style>
+
+<script type="importmap">
+{
+"imports": {
+"three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+}
+}
+</script>
+</head>
+<body>
+<div id="info">
+<strong>LZ 129 Hindenburg – AR</strong>
+<div id="status">3D-Modell wird geladen …</div>
+<a id="back" href="./index.html">Zurück zur Projektseite</a>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { ARButton } from 'three/addons/webxr/ARButton.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const MODEL_URL = './models/model.glb';
+const status = document.getElementById('status');
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+70, window.innerWidth / window.innerHeight, 0.01, 100
+);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.xr.enabled = true;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x888899, 2));
+const light = new THREE.DirectionalLight(0xffffff, 2);
+light.position.set(1, 3, 2);
+scene.add(light);
+
+const reticle = new THREE.Mesh(
+new THREE.RingGeometry(0.08, 0.11, 32),
+new THREE.MeshBasicMaterial({ color: 0xffcc55, side: THREE.DoubleSide })
+);
+reticle.rotation.x = -Math.PI / 2;
+reticle.matrixAutoUpdate = false;
+reticle.visible = false;
+scene.add(reticle);
+
+let model = null;
+let hitTestSource = null;
+let localSpace = null;
+let lastHitMatrix = null;
+let placed = false;
+
+const loader = new GLTFLoader();
+loader.load(
+MODEL_URL,
+(gltf) => {
+model = gltf.scene;
+model.visible = false;
+// Die GLB-Größe bleibt unverändert. Hier bei Bedarf skalieren.
+model.scale.setScalar(1);
+scene.add(model);
+status.textContent = 'Modell geladen. Tippe auf „AR starten“.';
+},
+undefined,
+(error) => {
+console.error(error);
+status.textContent =
+'Modell konnte nicht geladen werden. Bitte models/model.glb und den Dateinamen prüfen.';
+}
+);
+
+const arButton = ARButton.createButton(renderer, {
+requiredFeatures: ['hit-test'],
+optionalFeatures: ['dom-overlay'],
+domOverlay: { root: document.body }
+});
+document.body.appendChild(arButton);
+
+renderer.xr.addEventListener('sessionstart', async () => {
+placed = false;
+lastHitMatrix = null;
+reticle.visible = false;
+status.textContent = 'Bewege das Handy langsam, um eine Fläche zu erkennen.';
+
+try {
+const session = renderer.xr.getSession();
+const viewerSpace = await session.requestReferenceSpace('viewer');
+localSpace = await session.requestReferenceSpace('local');
+hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+
+session.addEventListener('select', () => {
+if (!model || !lastHitMatrix) return;
+const position = new THREE.Vector3();
+position.setFromMatrixPosition(lastHitMatrix);
+model.position.copy(position);
+model.visible = true;
+placed = true;
+status.textContent =
+'Modell platziert. Tippe auf eine andere erkannte Fläche, um es zu verschieben.';
+});
+
+session.addEventListener('end', () => {
+hitTestSource = null;
+localSpace = null;
+lastHitMatrix = null;
+reticle.visible = false;
+if (model) model.visible = false;
+status.textContent = 'AR beendet. Du kannst erneut starten.';
+});
+} catch (error) {
+console.error(error);
+status.textContent = 'Die Flächenerkennung konnte nicht gestartet werden.';
+}
+});
+
+renderer.setAnimationLoop((time, frame) => {
+if (frame && hitTestSource && localSpace) {
+const results = frame.getHitTestResults(hitTestSource);
+if (results.length > 0) {
+const pose = results[0].getPose(localSpace);
+if (pose) {
+lastHitMatrix = new THREE.Matrix4().fromArray(pose.transform.matrix);
+reticle.matrix.copy(lastHitMatrix);
+reticle.visible = true;
+if (!placed) {
+status.textContent =
+'Fläche erkannt. Tippe auf den Bildschirm, um das Modell zu platzieren.';
+}
+}
+} else {
+reticle.visible = false;
+lastHitMatrix = null;
+if (!placed) {
+status.textContent =
+'Noch keine Fläche erkannt. Bewege das Handy langsam weiter.';
+}
+}
+}
+renderer.render(scene, camera);
+});
+
+window.addEventListener('resize', () => {
+camera.aspect = window.innerWidth / window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
